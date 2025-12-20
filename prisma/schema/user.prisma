@@ -1,0 +1,145 @@
+model User {
+  id         String        @id @default(uuid())
+  email      String        @unique
+  password   String
+  role       UserRole
+  gender     Gender?
+  status     UserStatus    @default(ACTIVE)
+  isVerified Boolean       @default(false)
+
+  // Security & Tracking
+  //   lastLoginAt        DateTime?
+  //   loginAttempts      Int        @default(0)
+  //   lockedUntil        DateTime?
+
+  //         Audit
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  //         Relations
+  superAdmin SuperAdmin?
+  admin      Admin?
+  host       Host?
+  profile    UserProfile?
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                                                      String     @id @default(uuid())
+  email                                                   String     @unique
+
+  // Personal Info
+  fullName                                                String
+  username                                                String?    @unique
+  dateOfBirth                                             DateTime?
+  contactNumber                                           String?
+
+  //                                                      Profile
+  profileImage                                            String?
+  bio                                                     String?    @db.Text
+  interests     String[] // ["Music", "Sports", "Gaming"]
+  location      String?  // City / Area
+
+  // Activity Info
+  //   totalEventsJoined Int  @default(0)
+  //   totalEventsHosted Int  @default(0)
+
+  //                                                      Preferences
+  isProfilePublic                                         Boolean    @default(true)
+
+  createdAt                                               DateTime   @default(now())
+  updatedAt                                               DateTime   @updatedAt
+
+  user                                                    User      @relation(fields: [email], references: [email])
+
+  @@map("user_profiles")
+}
+
+
+model SuperAdmin {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  profilePhoto  String?
+  contactNumber String?
+
+
+  //            Authority
+  //   canCreateAdmin Boolean @default(true)
+  //   canBanUser     Boolean @default(true)
+
+  // System Tracking
+  //   lastActionAt  DateTime?
+  //   isDeleted     Boolean  @default(false)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User     @relation(fields: [email], references: [email])
+
+  @@map("super_admins")
+}
+
+model Admin {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  profilePhoto  String?
+  contactNumber String?
+  bio           String?   @db.Text
+
+  // Work Info
+  //   department    String?  // moderation / operations
+  //   assignedArea  String?  // city / region
+
+  //            Permissions
+  //   canManageUsers  Boolean @default(true)
+  //   canManageEvents Boolean @default(true)
+  //   canViewReports  Boolean @default(true)
+
+  //            Status
+  isDeleted     Boolean   @default(false)
+  //   lastActiveAt  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User     @relation(fields: [email], references: [email])
+
+  @@map("admins")
+}
+
+model Host {
+  id                                                       String    @id @default(uuid())
+  name                                                     String
+  email                                                    String    @unique
+  profilePhoto                                             String?
+  contactNumber                                            String?
+
+  // Host Details
+  organization     String?   // Club / Community / Company
+  experienceLevel                                          Int       @default(0) // years or level
+  bio                                                      String?   @db.Text
+
+  // Event Stats
+  totalEvents                                              Int       @default(0)
+  successfulEvents                                         Int       @default(0)
+  cancelledEvents                                          Int       @default(0)
+  hostRating                                               Float     @default(0.0)
+
+  //                                                       Verification
+  //   isVerifiedHost   Boolean   @default(false)
+  //   verificationNote String?
+
+  //                                                       Status
+  isDeleted                                                Boolean   @default(false)
+  //   lastHostedAt     DateTime?
+
+  createdAt                                                DateTime  @default(now())
+  updatedAt                                                DateTime  @updatedAt
+
+  user                                                     User     @relation(fields: [email], references: [email])
+
+  @@map("hosts")
+}
