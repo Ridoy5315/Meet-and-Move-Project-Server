@@ -25,7 +25,7 @@ model User {
   email                                 String         @unique
 
   // Personal Info
-  fullName                              String
+  name                              String
   username                              String?        @unique
   dateOfBirth                           DateTime?
   contactNumber                         String?
@@ -54,7 +54,7 @@ model User {
 
 model SuperAdmin {
   id            String    @id @default(uuid())
-  fullName                              String
+  name                              String
   email         String    @unique
   profilePhoto  String?
   contactNumber String?
@@ -78,7 +78,7 @@ model SuperAdmin {
 
 model Admin {
   id            String    @id @default(uuid())
-  fullName                              String
+  name                              String
   username                              String?        @unique
   email         String    @unique
   profilePhoto  String?
@@ -108,7 +108,7 @@ model Admin {
 
 model Host {
   id                                                       String    @id @default(uuid())
-  fullName                              String
+  name                              String
   username                              String?        @unique
   email                                                    String    @unique
   profilePhoto                                             String?

@@ -6,29 +6,12 @@ export const Gender = z.enum(["MALE", "FEMALE"]);
 
 export const UserStatus = z.enum(["ACTIVE", "BLOCKED", "SUSPENDED"]);
 
-export const createUserSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  gender: Gender.optional(),
-  user: z.object({
-    email: z.string().email("Invalid email address"),
-    fullName: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name is too long"),
-
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .optional(),
-  }),
-});
-
-export const createHostSchema = z.object({
+export const createHostZodSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   gender: Gender.optional(),
   host: z.object({
     email: z.string().email("Invalid email address"),
-    fullName: z
+    name: z
       .string()
       .min(2, "Name must be at least 2 characters")
       .max(100, "Name is too long"),
@@ -58,12 +41,12 @@ export const createHostSchema = z.object({
   }),
 });
 
-export const createAdminSchema = z.object({
+export const createAdminZodSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   gender: Gender.optional(),
   admin: z.object({
     email: z.string().email("Invalid email address"),
-    fullName: z
+    name: z
       .string()
       .min(2, "Name must be at least 2 characters")
       .max(100, "Name is too long"),
