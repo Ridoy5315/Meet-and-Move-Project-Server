@@ -1,6 +1,5 @@
 import { Server } from 'http';
 import app from './app';
-import { config } from 'process';
 import { envVars } from './app/config/env';
 
 
