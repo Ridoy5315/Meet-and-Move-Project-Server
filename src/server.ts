@@ -2,45 +2,71 @@ import { Server } from 'http';
 import app from './app';
 import config from './config';
 
+let server: Server;
 
 async function bootstrap() {
-    // This variable will hold our server instance
-    let server: Server;
-
     try {
-        // Start the server
+        
         server = app.listen(config.port, () => {
             console.log(`🚀 Server is running on http://localhost:${config.port}`);
         });
-
-        // Function to gracefully shut down the server
-        const exitHandler = () => {
-            if (server) {
-                server.close(() => {
-                    console.log('Server closed gracefully.');
-                    process.exit(1); // Exit with a failure code
-                });
-            } else {
-                process.exit(1);
-            }
-        };
-
-        // Handle unhandled promise rejections
-        process.on('unhandledRejection', (error) => {
-            console.log('Unhandled Rejection is detected, we are closing our server...');
-            if (server) {
-                server.close(() => {
-                    console.log(error);
-                    process.exit(1);
-                });
-            } else {
-                process.exit(1);
-            }
-        });
     } catch (error) {
-        console.error('Error during server startup:', error);
-        process.exit(1);
+        console.log(error)
     }
 }
 
-bootstrap();
+(async () => {
+  // await connectRedis()
+  await bootstrap();;
+//   await seedSuperAdmin();
+})();
+
+//unhandled rejection error
+process.on("unhandledRejection", (err) => {
+  console.log("Unhandled Rejection detected... Server shutting down..", err);
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+
+  process.exit(1);
+});
+
+//uncaught rejection error
+process.on("uncaughtException", (err) => {
+  console.log("Uncaught exception detected... Server shutting down..", err);
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+  process.exit(1);
+});
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM signal received... Server shutting down..");
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+
+  process.exit(1);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT signal received... Server shutting down..");
+
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+
+  process.exit(1);
+});
+
