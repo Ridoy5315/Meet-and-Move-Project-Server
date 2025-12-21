@@ -7,7 +7,7 @@ model User {
   status     UserStatus    @default(ACTIVE)
   isVerified Boolean       @default(false)
 
-  // Security & Tracking
+  // Security & Tracking ---
   //   lastLoginAt        DateTime?
   //   loginAttempts      Int        @default(0)
   //   lockedUntil        DateTime?
