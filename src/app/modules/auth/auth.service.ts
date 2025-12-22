@@ -45,6 +45,10 @@ const loginUser = async (payload: { email: string; password: string }) => {
     },
   });
 
+  if (!userData.password) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid email or password.");
+  }
+
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.password,
     userData.password

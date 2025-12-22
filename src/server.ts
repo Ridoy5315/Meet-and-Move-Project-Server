@@ -2,6 +2,7 @@ import { Server } from 'http';
 import app from './app';
 
 import { envVars } from './app/config/env';
+import { seedSuperAdmin } from './app/utils/seedSuperAdmin';
 
 
 
@@ -21,7 +22,7 @@ async function bootstrap() {
 (async () => {
   // await connectRedis()
   await bootstrap();;
-//   await seedSuperAdmin();
+  await seedSuperAdmin();
 })();
 
 //unhandled rejection error

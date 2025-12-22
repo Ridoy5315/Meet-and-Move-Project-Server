@@ -1,7 +1,8 @@
 model UserBasicInfo {
   id         String       @id @default(uuid())
   email      String       @unique
-  password   String
+  password   String?
+  authProvider AuthProvider @default(LOCAL)
   role       UserRole
   gender     Gender?
   status     UserStatus   @default(ACTIVE)
@@ -25,7 +26,7 @@ model User {
   email                                 String         @unique
 
   // Personal Info
-  name                              String
+  name                                  String
   username                              String?        @unique
   dateOfBirth                           DateTime?
   contactNumber                         String?
@@ -35,6 +36,8 @@ model User {
   bio                                   String?        @db.Text
   interests                             String[]       @default([]) // ["Music", "Sports", "Gaming"]
   location      String?  // City / Area
+
+  isDeleted                             Boolean        @default(false)
 
   // Activity Info
   //   totalEventsJoined Int  @default(0)
@@ -53,9 +56,9 @@ model User {
 
 
 model SuperAdmin {
-  id            String    @id @default(uuid())
-  name                              String
-  email         String    @unique
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
   profilePhoto  String?
   contactNumber String?
 
@@ -68,22 +71,22 @@ model SuperAdmin {
   //   lastActionAt  DateTime?
   //   isDeleted     Boolean  @default(false)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  userBasicInfo          UserBasicInfo     @relation(fields: [email], references: [email])
+  userBasicInfo UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("super_admins")
 }
 
 model Admin {
-  id            String    @id @default(uuid())
-  name                              String
-  username                              String?        @unique
-  email         String    @unique
+  id            String         @id @default(uuid())
+  name          String
+  username      String?        @unique
+  email         String         @unique
   profilePhoto  String?
   contactNumber String?
-  bio           String?   @db.Text
+  bio           String?        @db.Text
 
   // Work Info
   //   department    String?  // moderation / operations
@@ -95,48 +98,48 @@ model Admin {
   //   canViewReports  Boolean @default(true)
 
   //            Status
-  isDeleted     Boolean   @default(false)
+  isDeleted     Boolean        @default(false)
   //   lastActiveAt  DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  userBasicInfo          UserBasicInfo     @relation(fields: [email], references: [email])
+  userBasicInfo UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("admins")
 }
 
 model Host {
-  id                                                       String    @id @default(uuid())
-  name                              String
-  username                              String?        @unique
-  email                                                    String    @unique
+  id                                                       String         @id @default(uuid())
+  name                                                     String
+  username                                                 String?        @unique
+  email                                                    String         @unique
   profilePhoto                                             String?
   contactNumber                                            String?
 
   // Host Details
   organization     String?   // Club / Community / Company
-  experienceLevel                                          Int       @default(0) // years or level
-  bio                                                      String?   @db.Text
+  experienceLevel                                          Int            @default(0) // years or level
+  bio                                                      String?        @db.Text
 
   // Event Stats
-  totalEvents                                              Int       @default(0)
-  successfulEvents                                         Int       @default(0)
-  cancelledEvents                                          Int       @default(0)
-  hostRating                                               Float     @default(0.0)
+  totalEvents                                              Int            @default(0)
+  successfulEvents                                         Int            @default(0)
+  cancelledEvents                                          Int            @default(0)
+  hostRating                                               Float          @default(0.0)
 
   //                                                       Verification
   //   isVerifiedHost   Boolean   @default(false)
   //   verificationNote String?
 
   //                                                       Status
-  isDeleted                                                Boolean   @default(false)
+  isDeleted                                                Boolean        @default(false)
   //   lastHostedAt     DateTime?
 
-  createdAt                                                DateTime  @default(now())
-  updatedAt                                                DateTime  @updatedAt
+  createdAt                                                DateTime       @default(now())
+  updatedAt                                                DateTime       @updatedAt
 
-  userBasicInfo                                                     UserBasicInfo     @relation(fields: [email], references: [email])
+  userBasicInfo                                            UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("hosts")
 }
