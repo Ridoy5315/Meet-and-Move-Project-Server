@@ -28,7 +28,6 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use('/api', router);
 
-
 app.use(globalErrorHandler);
 
 app.use(notFound);
