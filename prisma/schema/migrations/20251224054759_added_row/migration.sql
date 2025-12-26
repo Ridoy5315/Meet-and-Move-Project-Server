@@ -1,0 +1,13 @@
+/*
+  Warnings:
+
+  - You are about to drop the column `profileImage` on the `users` table. All the data in the column will be lost.
+
+*/
+-- AlterTable
+ALTER TABLE "admins" ADD COLUMN     "dateOfBirth" TIMESTAMP(3),
+ADD COLUMN     "location" TEXT;
+
+-- AlterTable
+ALTER TABLE "users" DROP COLUMN "profileImage",
+ADD COLUMN     "profilePhoto" TEXT;

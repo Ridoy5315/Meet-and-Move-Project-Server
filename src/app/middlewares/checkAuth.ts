@@ -11,7 +11,11 @@ export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("req.cookies.accessToken", req.cookies.accessToken)
+      
       const accessToken = req.headers.authorization || req.cookies.accessToken;
+
+      console.log("accessToken", accessToken)
 
       if (!accessToken) {
         {
@@ -27,16 +31,19 @@ export const checkAuth =
         envVars.JWT.JWT_ACCESS_SECRET
       ) as JwtPayload;
 
-      const isUserExist = await prisma.userBasicInfo.findUniqueOrThrow({
+      const isUserExist = await prisma.userBasicInfo.findFirstOrThrow({
         where: {
           email: verifiedToken.email,
           status: UserStatus.ACTIVE,
         },
       });
 
-      if (!isUserExist.isVerified) {
-        throw new AppError(httpStatus.FORBIDDEN, "Account not verified. Please verify your email to continue.");
-      }
+      // if (!isUserExist.isVerified) {
+      //   throw new AppError(
+      //     httpStatus.FORBIDDEN,
+      //     "Account not verified. Please verify your email to continue."
+      //   );
+      // }
 
       if (!authRoles.includes(verifiedToken.role)) {
         throw new AppError(

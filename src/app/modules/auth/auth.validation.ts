@@ -3,9 +3,7 @@ import { Gender } from "../user/user.validation";
 
 export const createUserZodSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
-  gender: Gender.optional(),
   user: z.object({
-    email: z.string().email("Invalid email address"),
     name: z
       .string()
       .min(2, "Name must be at least 2 characters")
@@ -15,6 +13,7 @@ export const createUserZodSchema = z.object({
       .string()
       .min(3, "Username must be at least 3 characters")
       .optional(),
+    email: z.string().email("Invalid email address"),
   }),
 });
 

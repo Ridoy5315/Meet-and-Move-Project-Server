@@ -1,55 +1,51 @@
 model UserBasicInfo {
-  id         String       @id @default(uuid())
-  email      String       @unique
-  password   String?
-  authProvider AuthProvider @default(LOCAL)
-  role       UserRole
-  gender     Gender?
-  status     UserStatus   @default(ACTIVE)
-  isVerified Boolean      @default(false)
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String?
+  authProvider AuthProvider  @default(LOCAL)
+  role         UserRole
+  status       UserStatus    @default(ACTIVE)
+  isVerified   Boolean       @default(false)
 
-  //         Audit
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  //           Audit
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  //         Relations
-  superAdmin SuperAdmin?
-  admin      Admin?
-  host       Host?
-  user       User?
+  //           Relations
+  superAdmin   SuperAdmin?
+  admin        Admin?
+  host         Host?
+  user         User?
 
   @@map("user_basic_info")
 }
 
 model User {
-  id                                    String         @id @default(uuid())
-  email                                 String         @unique
+  id                                   String         @id @default(uuid())
+  email                                String         @unique
 
   // Personal Info
-  name                                  String
-  username                              String?        @unique
-  dateOfBirth                           DateTime?
-  contactNumber                         String?
+  name                                 String
+  username                             String?        @unique
+  gender                               Gender?
+  dateOfBirth                          DateTime?
+  contactNumber                        String?
 
-  //                                    Profile
-  profileImage                          String?
-  bio                                   String?        @db.Text
-  interests                             String[]       @default([]) // ["Music", "Sports", "Gaming"]
-  location      String?  // City / Area
+  //                                   Profile
+  profilePhoto                         String?
+  bio                                  String?        @db.Text
+  interests                            String[]       @default([]) // ["Music", "Sports", "Gaming"]
+  address      String?  // City / Area
 
-  isDeleted                             Boolean        @default(false)
+  isDeleted                            Boolean        @default(false)
 
-  // Activity Info
-  //   totalEventsJoined Int  @default(0)
-  //   totalEventsHosted Int  @default(0)
+  //                                   Preferences
+  isProfilePublic                      Boolean        @default(true)
 
-  //                                    Preferences
-  isProfilePublic                       Boolean        @default(true)
+  createdAt                            DateTime       @default(now())
+  updatedAt                            DateTime       @updatedAt
 
-  createdAt                             DateTime       @default(now())
-  updatedAt                             DateTime       @updatedAt
-
-  userBasicInfo                         UserBasicInfo @relation(fields: [email], references: [email])
+  userBasicInfo                        UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("users")
 }
@@ -60,6 +56,7 @@ model SuperAdmin {
   name          String
   email         String         @unique
   profilePhoto  String?
+  gender        Gender?
   contactNumber String?
 
 
@@ -80,31 +77,34 @@ model SuperAdmin {
 }
 
 model Admin {
-  id            String         @id @default(uuid())
-  name          String
-  username      String?        @unique
-  email         String         @unique
-  profilePhoto  String?
-  contactNumber String?
-  bio           String?        @db.Text
+  id                                   String         @id @default(uuid())
+  name                                 String
+  username                             String?        @unique
+  email                                String         @unique
+  profilePhoto                         String?
+  gender                               Gender?
+  dateOfBirth                          DateTime?
+  contactNumber                        String?
+  bio                                  String?        @db.Text
+  address      String?  // City / Area
 
   // Work Info
   //   department    String?  // moderation / operations
   //   assignedArea  String?  // city / region
 
-  //            Permissions
+  //                                   Permissions
   //   canManageUsers  Boolean @default(true)
   //   canManageEvents Boolean @default(true)
   //   canViewReports  Boolean @default(true)
 
-  //            Status
-  isDeleted     Boolean        @default(false)
+  //                                   Status
+  isDeleted                            Boolean        @default(false)
   //   lastActiveAt  DateTime?
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt                            DateTime       @default(now())
+  updatedAt                            DateTime       @updatedAt
 
-  userBasicInfo UserBasicInfo @relation(fields: [email], references: [email])
+  userBasicInfo                        UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("admins")
 }
@@ -115,12 +115,14 @@ model Host {
   username                                                 String?        @unique
   email                                                    String         @unique
   profilePhoto                                             String?
+  gender                                                   Gender?
   contactNumber                                            String?
 
   // Host Details
   organization     String?   // Club / Community / Company
   experienceLevel                                          Int            @default(0) // years or level
   bio                                                      String?        @db.Text
+  address                                                  String?
 
   // Event Stats
   totalEvents                                              Int            @default(0)
@@ -133,6 +135,7 @@ model Host {
   //   verificationNote String?
 
   //                                                       Status
+  hostStatus                                               HostStatus?   @default(PENDING)
   isDeleted                                                Boolean        @default(false)
   //   lastHostedAt     DateTime?
 

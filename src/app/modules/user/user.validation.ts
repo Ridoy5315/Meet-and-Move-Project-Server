@@ -6,61 +6,48 @@ export const Gender = z.enum(["MALE", "FEMALE"]);
 
 export const UserStatus = z.enum(["ACTIVE", "BLOCKED", "SUSPENDED"]);
 
-export const createHostZodSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  gender: Gender.optional(),
-  host: z.object({
-    email: z.string().email("Invalid email address"),
-    name: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name is too long"),
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .optional(),
-    contactNumber: z
-      .string()
-      .min(6, "Contact number is too short")
-      .max(20, "Contact number is too long")
-      .optional(),
+export const becomeHostZodSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+  contactNumber: z
+    .string()
+    .min(6, "Contact number is too short")
+    .max(20, "Contact number is too long"),
+  dateOfBirth: z.string().nonempty("Date of birth is required"),
+  gender: Gender,
 
-    // Host details
-    organization: z
-      .string()
-      .max(150, "Organization name is too long")
-      .optional(),
+  // Host details
+  organization: z.string().max(150, "Organization name is too long"),
 
-    experienceLevel: z
-      .number()
-      .int("Experience level must be an integer")
-      .min(0, "Experience level cannot be negative")
-      .optional(),
+  experienceLevel: z
+    .number()
+    .int("Experience level must be an integer")
+    .min(0, "Experience level cannot be negative"),
 
-    bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
-  }),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters"),
+  address: z.string().max(200, "Address is too long"),
 });
 
 export const createAdminZodSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  gender: Gender.optional(),
-  admin: z.object({
-    email: z.string().email("Invalid email address"),
-    name: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name is too long"),
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .optional(),
-    contactNumber: z
-      .string()
-      .min(6, "Contact number is too short")
-      .max(20, "Contact number is too long")
-      .optional(),
-    bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
-  }),
+  email: z.string().email("Invalid email address"),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .optional(),
+  gender: Gender,
+  contactNumber: z
+    .string()
+    .min(6, "Contact number is too short")
+    .max(20, "Contact number is too long"),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
 });
 
 /* =======================
@@ -68,7 +55,6 @@ export const createAdminZodSchema = z.object({
 ======================= */
 
 export const updateUserZodSchema = z.object({
-  gender: Gender.optional(),
   user: z.object({
     name: z
       .string()
@@ -94,6 +80,8 @@ export const updateUserZodSchema = z.object({
       .url("Profile image must be a valid URL")
       .optional(),
 
+    gender: Gender.optional(),
+
     bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
 
     interests: z.array(z.string()).optional(),
@@ -105,7 +93,6 @@ export const updateUserZodSchema = z.object({
 });
 
 export const updateAdminZodSchema = z.object({
-  gender: Gender.optional(),
   admin: z.object({
     name: z
       .string()
@@ -123,6 +110,7 @@ export const updateAdminZodSchema = z.object({
       .string()
       .url("Profile photo must be a valid URL")
       .optional(),
+    gender: Gender.optional(),
 
     contactNumber: z
       .string()
@@ -135,7 +123,6 @@ export const updateAdminZodSchema = z.object({
 });
 
 export const updateHostZodSchema = z.object({
-  gender: Gender.optional(),
   host: z.object({
     name: z
       .string()
@@ -153,7 +140,7 @@ export const updateHostZodSchema = z.object({
       .string()
       .url("Profile photo must be a valid URL")
       .optional(),
-
+    gender: Gender.optional(),
     contactNumber: z
       .string()
       .min(6, "Contact number is too short")

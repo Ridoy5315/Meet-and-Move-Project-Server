@@ -20,3 +20,9 @@ enum AuthProvider {
   LOCAL
   GOOGLE
 }
+
+enum HostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
