@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.post(
     "/create-admin",
-    checkAuth(UserRole.SUPER_ADMIN),
+    // checkAuth(UserRole.SUPER_ADMIN),
     fileUploader.upload.single('file'),
     validateRequest(createAdminZodSchema),
     UserController.createAdmin

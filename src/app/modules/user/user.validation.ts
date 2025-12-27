@@ -34,20 +34,27 @@ export const becomeHostZodSchema = z.object({
 
 export const createAdminZodSchema = z.object({
   email: z.string().email("Invalid email address"),
+
   name: z
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(100, "Name is too long"),
+
   username: z
     .string()
     .min(3, "Username must be at least 3 characters")
-    .optional(),
+    .max(50, "Username is too long"),
+
   gender: Gender,
+
   contactNumber: z
     .string()
     .min(6, "Contact number is too short")
     .max(20, "Contact number is too long"),
-  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+  dateOfBirth: z.string().nonempty("Date of birth is required"),
+
+  bio: z.string().max(500, "Bio cannot exceed 500 characters"),
+  address: z.string().max(200, "Address is too long"),
 });
 
 /* =======================

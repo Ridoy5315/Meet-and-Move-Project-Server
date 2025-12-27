@@ -26,13 +26,13 @@ export const seedSuperAdmin = async () => {
       password: hashedPassword,
       authProvider: AuthProvider.LOCAL,
       role: UserRole.SUPER_ADMIN,
-      gender: Gender.MALE,
       isVerified: true,
     };
 
     const payload = {
       name: "Super Admin",
       email: envVars.SUPER_ADMIN_EMAIL,
+      gender: Gender.MALE,
     };
 
     await prisma.$transaction(async (tnx) => {

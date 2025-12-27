@@ -77,34 +77,34 @@ model SuperAdmin {
 }
 
 model Admin {
-  id                                   String         @id @default(uuid())
-  name                                 String
-  username                             String?        @unique
-  email                                String         @unique
-  profilePhoto                         String?
-  gender                               Gender?
-  dateOfBirth                          DateTime?
-  contactNumber                        String?
-  bio                                  String?        @db.Text
-  address      String?  // City / Area
+  id                                  String         @id @default(uuid())
+  name                                String
+  username                            String?        @unique
+  email                               String         @unique
+  profilePhoto                        String
+  gender                              Gender
+  dateOfBirth                         DateTime
+  contactNumber                       String
+  bio                                 String         @db.Text
+  address      String  // City / Area
 
   // Work Info
   //   department    String?  // moderation / operations
   //   assignedArea  String?  // city / region
 
-  //                                   Permissions
+  //                                  Permissions
   //   canManageUsers  Boolean @default(true)
   //   canManageEvents Boolean @default(true)
   //   canViewReports  Boolean @default(true)
 
-  //                                   Status
-  isDeleted                            Boolean        @default(false)
+  //                                  Status
+  isDeleted                           Boolean        @default(false)
   //   lastActiveAt  DateTime?
 
-  createdAt                            DateTime       @default(now())
-  updatedAt                            DateTime       @updatedAt
+  createdAt                           DateTime       @default(now())
+  updatedAt                           DateTime       @updatedAt
 
-  userBasicInfo                        UserBasicInfo @relation(fields: [email], references: [email])
+  userBasicInfo                       UserBasicInfo @relation(fields: [email], references: [email])
 
   @@map("admins")
 }
@@ -114,15 +114,16 @@ model Host {
   name                                                     String
   username                                                 String?        @unique
   email                                                    String         @unique
-  profilePhoto                                             String?
-  gender                                                   Gender?
-  contactNumber                                            String?
+  profilePhoto                                             String
+  gender                                                   Gender
+  contactNumber                                            String
+  dateOfBirth                                              DateTime
 
   // Host Details
   organization     String?   // Club / Community / Company
   experienceLevel                                          Int            @default(0) // years or level
-  bio                                                      String?        @db.Text
-  address                                                  String?
+  bio                                                      String         @db.Text
+  address                                                  String
 
   // Event Stats
   totalEvents                                              Int            @default(0)
@@ -135,7 +136,7 @@ model Host {
   //   verificationNote String?
 
   //                                                       Status
-  hostStatus                                               HostStatus?   @default(PENDING)
+  hostStatus                                               HostStatus     @default(PENDING)
   isDeleted                                                Boolean        @default(false)
   //   lastHostedAt     DateTime?
 
