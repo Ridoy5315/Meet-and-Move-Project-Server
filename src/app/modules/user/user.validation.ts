@@ -62,42 +62,53 @@ export const createAdminZodSchema = z.object({
 ======================= */
 
 export const updateUserZodSchema = z.object({
-  user: z.object({
-    name: z
-      .string()
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name is too long")
-      .optional(),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long")
+    .optional(),
 
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .optional(),
+  username: z
+    .string()
+    .min(2, "Username must be at least 3 characters")
+    .optional(),
 
-    dateOfBirth: z.string().datetime().optional(),
+  dateOfBirth: z
+  .string()
+  .optional()
+  .refine(
+    (value) => !value || !Number.isNaN(Date.parse(value)),
+    { message: "Invalid date of birth" }
+  ).optional(),
 
-    contactNumber: z
-      .string()
-      .min(6, "Contact number is too short")
-      .max(20, "Contact number is too long")
-      .optional(),
+  gender: Gender.optional().or(z.literal("")),
 
-    profileImage: z
-      .string()
-      .url("Profile image must be a valid URL")
-      .optional(),
+  contactNumber: z
+    .string()
+    .min(10, "Contact number is too short")
+    .max(15, "Contact number is too long")
+    .optional().or(z.literal("")),
 
-    gender: Gender.optional(),
+  profileImage: z
+    .string()
+    .url("Profile image must be a valid URL")
+    .optional(),
 
-    bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+  bio: z
+    .string()
+    .max(500, "Bio cannot exceed 500 characters")
+    .optional(),
 
-    interests: z.array(z.string()).optional(),
+  interests: z
+    .array(z.string())
+    .optional(),
 
-    location: z.string().max(100, "Location is too long").optional(),
-
-    isProfilePublic: z.boolean().optional(),
-  }),
+  address: z
+    .string()
+    .max(100, "Address is too long")
+    .optional(),
 });
+
 
 export const updateAdminZodSchema = z.object({
   admin: z.object({

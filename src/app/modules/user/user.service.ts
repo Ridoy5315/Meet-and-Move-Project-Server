@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { Admin, Host, UserRole } from "@prisma/client";
+import { Admin, Host, UserRole, UserStatus } from "@prisma/client";
 import { Request } from "express";
 import { fileUploader } from "../../config/fileUploaders";
 import { JwtPayload } from "jsonwebtoken";
@@ -8,7 +8,6 @@ import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
 
 const createAdmin = async (req: Request): Promise<Admin> => {
-
   const file = req.file;
 
   if (file) {
@@ -18,7 +17,7 @@ const createAdmin = async (req: Request): Promise<Admin> => {
 
   await prisma.superAdmin.findFirstOrThrow({
     where: {
-      email: envVars.SUPER_ADMIN_EMAIL
+      email: envVars.SUPER_ADMIN_EMAIL,
     },
   });
 
@@ -153,14 +152,14 @@ const becomeHost = async (req: Request): Promise<Host> => {
   } = req.body;
 
   const result = await prisma.$transaction(async (tnx) => {
-    await tnx.userBasicInfo.update({
-      where: {
-        email: req.body.email,
-      },
-      data: {
-        role: UserRole.HOST,
-      },
-    });
+    // await tnx.userBasicInfo.update({
+    //   where: {
+    //     email: req.body.email,
+    //   },
+    //   data: {
+    //     role: UserRole.HOST,
+    //   },
+    // });
 
     const createdHostData = await tnx.host.create({
       data: {
@@ -183,8 +182,70 @@ const becomeHost = async (req: Request): Promise<Host> => {
 
   return result;
 };
+const updateUser = async (req: Request) => {
+  console.log("req.body", req.body);
+  console.log("req.params", req.params);
+
+  const file = req.file;
+
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.profilePhoto = uploadToCloudinary?.secure_url;
+  }
+
+  const decodedToken = req.user;
+
+  const isExistUser = await prisma.user.findFirstOrThrow({
+    where: {
+      id: req.params.id,
+      isDeleted: false,
+    },
+  });
+
+  const userBasicInfo = await prisma.userBasicInfo.findFirstOrThrow({
+    where: {
+      email: isExistUser.email,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  if (decodedToken.role === "ADMIN") {
+    const admin = await prisma.admin.findUnique({
+      where: { email: decodedToken.email },
+    });
+
+    if (!admin) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Invalid admin credentials");
+    }
+  } else {
+    if (decodedToken.email !== userBasicInfo.email) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not allowed to update another user's profile"
+      );
+    }
+  }
+
+  const updateData = Object.fromEntries(
+    Object.entries(req.body).filter(
+      ([, value]) => value !== "" && value !== undefined
+    )
+  );
+
+   console.log("updateData", updateData);
+
+  const result = await prisma.user.update({
+    where: {
+      id: req.params.id,
+    },
+    data: updateData,
+  });
+
+  return result;
+};
 
 export const UserService = {
   createAdmin,
   becomeHost,
+  updateUser,
 };

@@ -59,15 +59,6 @@ model SuperAdmin {
   gender        Gender?
   contactNumber String?
 
-
-  //            Authority
-  //   canCreateAdmin Boolean @default(true)
-  //   canBanUser     Boolean @default(true)
-
-  // System Tracking
-  //   lastActionAt  DateTime?
-  //   isDeleted     Boolean  @default(false)
-
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -88,18 +79,8 @@ model Admin {
   bio                                 String         @db.Text
   address      String  // City / Area
 
-  // Work Info
-  //   department    String?  // moderation / operations
-  //   assignedArea  String?  // city / region
-
-  //                                  Permissions
-  //   canManageUsers  Boolean @default(true)
-  //   canManageEvents Boolean @default(true)
-  //   canViewReports  Boolean @default(true)
-
   //                                  Status
   isDeleted                           Boolean        @default(false)
-  //   lastActiveAt  DateTime?
 
   createdAt                           DateTime       @default(now())
   updatedAt                           DateTime       @updatedAt
@@ -131,14 +112,9 @@ model Host {
   cancelledEvents                                          Int            @default(0)
   hostRating                                               Float          @default(0.0)
 
-  //                                                       Verification
-  //   isVerifiedHost   Boolean   @default(false)
-  //   verificationNote String?
-
   //                                                       Status
   hostStatus                                               HostStatus     @default(PENDING)
   isDeleted                                                Boolean        @default(false)
-  //   lastHostedAt     DateTime?
 
   createdAt                                                DateTime       @default(now())
   updatedAt                                                DateTime       @updatedAt

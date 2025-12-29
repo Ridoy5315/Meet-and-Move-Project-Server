@@ -145,7 +145,6 @@ const getMe = async (user) => {
       status: UserStatus.ACTIVE,
     },
     select: {
-      id: true,
       email: true,
       role: true,
       status: true,
@@ -175,12 +174,25 @@ const getMe = async (user) => {
       profile = userData.superAdmin;
       break;
 
+    case "USER":
     default:
       profile = userData.user;
+      break;
+  }
+
+   if (!profile) {
+    return {
+      email: userData.email,
+      role: userData.role,
+      status: userData.status,
+      isVerified: userData.isVerified,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
+      profile: null,
+    };
   }
 
   return {
-    id: userData.id,
     email: userData.email,
     role: userData.role,
     status: userData.status,
