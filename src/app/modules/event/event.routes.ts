@@ -6,7 +6,7 @@ import { validateRequest } from '../../middlewares/validateRequest';
 
 import { fileUploader } from '../../config/fileUploaders';
 import { EventController } from './event.controller';
-import { createEventZodSchema } from './event.validation';
+import { createEventZodSchema, updateEventZodSchema } from './event.validation';
 
 
 
@@ -19,6 +19,19 @@ router.post(
     fileUploader.upload.single('file'),
     validateRequest(createEventZodSchema),
     EventController.createEvent
+);
+
+router.get(
+    "/",
+    EventController.getAllPublicEvents
+);
+
+router.patch(
+    "/update-event/:id",
+    checkAuth(UserRole.HOST),
+    fileUploader.upload.single('file'),
+    validateRequest(updateEventZodSchema),
+    EventController.updateEvent
 );
 
 

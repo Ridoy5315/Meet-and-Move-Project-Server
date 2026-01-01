@@ -1,34 +1,26 @@
 model Event {
-  id          String      @id @default(uuid())
-  title       String
-  description String
-  date        DateTime
-  startTime   String
-  endTime     String
-  location    String
-  isOnline    Boolean     @default(false)
-
-  priceType   PriceType
-  price       Float?
-  capacity    Int
-
-  tags        String[]
-  imageUrl    String
-
-  status      EventStatus @default(PENDING)
-
-  // 🔗 Host relation (creator)
-  hostId      String
-  host        Host        @relation(fields: [hostId], references: [id])
-
-  // 🔗 Admin relation (approver)
-  approvedById String?
-  approvedBy   Admin?     @relation(fields: [approvedById], references: [id])
-
-  approvedAt  DateTime?
-
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                   String      @id @default(uuid())
+  title                String
+  description          String
+  date                 DateTime
+  registrationDeadline DateTime
+  startTime            String
+  endTime              String
+  location             String
+  priceType            PriceType
+  price                Float?
+  capacity             Int
+  tags                 String[]
+  imageUrl             String
+  status               EventStatus @default(PENDING)
+  participantsCount    Int         @default(0)
+  hostId               String
+  approvedById         String?
+  approvedAt           DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  approvedBy           Admin?      @relation(fields: [approvedById], references: [id])
+  host                 Host        @relation(fields: [hostId], references: [id])
 
   @@map("events")
 }
