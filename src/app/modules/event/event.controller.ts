@@ -5,6 +5,7 @@ import { sendResponse } from "../../shared/sendResponse";
 import { EventServices } from "./event.service";
 import pick from "../../utils/pick";
 import { eventFilterableFields } from "./event.constants";
+import { JwtPayload } from "jsonwebtoken";
 
 const createEvent = catchAsync(async (req: Request, res: Response) => {
   const result = await EventServices.createEvent(req);
@@ -21,7 +22,9 @@ const getAllPublicEvents = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, eventFilterableFields);
   const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
 
-  const result = await EventServices.getAllPublicEvents(filters, options);
+  const user = req.user as JwtPayload | undefined;
+
+  const result = await EventServices.getAllPublicEvents(filters, options, user?.email );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

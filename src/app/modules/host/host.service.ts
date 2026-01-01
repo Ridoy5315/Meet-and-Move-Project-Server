@@ -1,83 +1,24 @@
-import httpStatus from "http-status";
 import { Request } from "express";
-import { JwtPayload } from "jsonwebtoken";
-import { Event, EventStatus, PriceType, Prisma } from "@prisma/client";
-import { fileUploader } from "../../config/fileUploaders";
-import AppError from "../../errorHelpers/AppError";
-import prisma from "../../shared/prisma";
-import { IEventFilterRequest } from "./event.interface";
+import { IEventFilterRequest } from "../event/event.interface";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
-import { eventSearchableFields } from "./event.constants";
+import { EventStatus, PriceType, Prisma } from "@prisma/client";
+import { eventSearchableFields } from "../event/event.constants";
+import prisma from "../../shared/prisma";
 
-const createEvent = async (req: Request): Promise<Event> => {
-  const decodedToken = req.user as JwtPayload;
 
-  const file = req.file;
 
-  if (file) {
-    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-    req.body.profilePhoto = uploadToCloudinary?.secure_url;
-  }
-
-  const host = await prisma.host.findFirstOrThrow({
-    where: {
-      email: decodedToken.email,
-      isDeleted: false,
-    },
-  });
-
-  if (host.id !== req.params.id) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "You are not allowed to submit host information for another account."
-    );
-  }
-
-  const tags =
-    (req.body.tags as string[] | undefined)?.map((t: string) =>
-      t.toLowerCase()
-    ) ?? [];
-
-  const eventData = {
-    title: req.body.title,
-    description: req.body.description,
-    date: new Date(req.body.date),
-    registrationDeadline: new Date(req.body.registrationDeadline),
-    startTime: req.body.startTime,
-    endTime: req.body.endTime,
-    location: req.body.location,
-    priceType: req.body.priceType,
-    price: req.body.price ?? null,
-    capacity: req.body.capacity,
-    tags,
-    imageUrl: req.body.profilePhoto,
-    host: {
-      connect: {
-        id: req.params.id,
-      },
-    },
-  };
-
-  const createdEvent = await prisma.event.create({
-    data: { ...eventData },
-  });
-
-  console.log("createdEvent", createdEvent);
-
-  return createdEvent;
-};
-
-const getAllPublicEvents = async (
+const getEventsByHostId = async (
   filters: IEventFilterRequest,
   options: IPaginationOptions,
-  userEmail?: string
+  req: Request
 ) => {
+    const {id} = req.params;
+
   const { limit, page, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, date, priceType, minPrice, maxPrice, ...filterData } =
     filters;
 
-  console.log("minPrice", minPrice, "maxPrice", maxPrice);
 
   const andConditions: Prisma.EventWhereInput[] = [];
 
@@ -153,23 +94,6 @@ const getAllPublicEvents = async (
     status: EventStatus.PUBLISHED,
   });
 
-  console.log("userEmail", userEmail);
-
-  if (userEmail) {
-    const host = await prisma.host.findUnique({
-      where: { email: userEmail },
-      select: { id: true },
-    });
-
-    if (!host) {
-      throw new AppError(httpStatus.NOT_FOUND, "Host not found");
-    }
-
-    andConditions.push({
-      hostId: host.id,
-    });
-  }
-
   const whereConditions: Prisma.EventWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
@@ -201,14 +125,6 @@ const getAllPublicEvents = async (
   };
 };
 
-const updateEvent = async (req: Request): Promise<Event> => {
-  console.log(req.body);
-
-  return {};
-};
-
-export const EventServices = {
-  createEvent,
-  getAllPublicEvents,
-  updateEvent,
+export const HostServices = {
+  getEventsByHostId
 };
