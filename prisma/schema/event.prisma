@@ -1,5 +1,5 @@
 model Event {
-  id                   String      @id @default(uuid())
+  id                   String                 @id @default(uuid())
   title                String
   description          String
   date                 DateTime
@@ -12,15 +12,17 @@ model Event {
   capacity             Int
   tags                 String[]
   imageUrl             String
-  status               EventStatus @default(PENDING)
-  participantsCount    Int         @default(0)
+  approvalStatus       EventApprovalStatus    @default(PENDING)
+  lifecycleStatus      EventLifecycleStatus?
+  participantsCount    Int                    @default(0)
+  isDeleted            Boolean                @default(false)
   hostId               String
   approvedById         String?
   approvedAt           DateTime?
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  approvedBy           Admin?      @relation(fields: [approvedById], references: [id])
-  host                 Host        @relation(fields: [hostId], references: [id])
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  approvedBy           Admin?                @relation(fields: [approvedById], references: [id])
+  host                 Host                  @relation(fields: [hostId], references: [id])
 
   @@map("events")
 }

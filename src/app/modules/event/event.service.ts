@@ -1,7 +1,13 @@
 import httpStatus from "http-status";
 import { Request } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { Event, EventStatus, PriceType, Prisma } from "@prisma/client";
+import {
+  Event,
+  EventApprovalStatus,
+  EventLifecycleStatus,
+  PriceType,
+  Prisma,
+} from "@prisma/client";
 import { fileUploader } from "../../config/fileUploaders";
 import AppError from "../../errorHelpers/AppError";
 import prisma from "../../shared/prisma";
@@ -34,12 +40,27 @@ const createEvent = async (req: Request): Promise<Event> => {
     );
   }
 
+  if (
+    req.body.registrationDeadline &&
+    req.body.date &&
+    new Date(req.body.registrationDeadline) > new Date(req.body.date)
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Registration deadline cannot be after event date."
+    );
+  }
+
+  if (req.body.priceType === "FREE") {
+    req.body.price = 0;
+  }
+
   const tags =
     (req.body.tags as string[] | undefined)?.map((t: string) =>
       t.toLowerCase()
     ) ?? [];
 
-  const eventData = {
+  const eventData: Prisma.EventCreateInput = {
     title: req.body.title,
     description: req.body.description,
     date: new Date(req.body.date),
@@ -150,7 +171,8 @@ const getAllPublicEvents = async (
   }
 
   andConditions.push({
-    status: EventStatus.PUBLISHED,
+    approvalStatus: EventApprovalStatus.PUBLISHED,
+    isDeleted: false,
   });
 
   console.log("userEmail", userEmail);
@@ -183,6 +205,25 @@ const getAllPublicEvents = async (
       options.sortBy && options.sortOrder
         ? { [options.sortBy]: options.sortOrder }
         : { registrationDeadline: "desc" },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      date: true,
+      registrationDeadline: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      priceType: true,
+      price: true,
+      capacity: true,
+      tags: true,
+      imageUrl: true,
+      participantsCount: true,
+      lifecycleStatus: true,
+      createdAt: true,
+      updatedAt: true
+    },
   });
 
   const total = await prisma.event.count({
@@ -202,9 +243,89 @@ const getAllPublicEvents = async (
 };
 
 const updateEvent = async (req: Request): Promise<Event> => {
-  console.log(req.body);
+  const decodedToken = req.user as JwtPayload;
 
-  return {};
+  const file = req.file;
+
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.imageUrl = uploadToCloudinary?.secure_url;
+  }
+
+  const host = await prisma.host.findFirstOrThrow({
+    where: {
+      email: decodedToken.email,
+      isDeleted: false,
+    },
+  });
+
+  const event = await prisma.event.findFirstOrThrow({
+    where: {
+      id: req.params.id,
+      isDeleted: false,
+      approvalStatus: EventApprovalStatus.PUBLISHED,
+    },
+  });
+
+  if (host.id !== event.hostId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not allowed to update event information for another host."
+    );
+  }
+
+  if (event.lifecycleStatus === EventLifecycleStatus.COMPLETED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Completed events cannot be updated."
+    );
+  }
+
+  if (
+    req.body.registrationDeadline &&
+    req.body.date &&
+    new Date(req.body.registrationDeadline) > new Date(req.body.date)
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Registration deadline cannot be after event date."
+    );
+  }
+
+  if (req.body.priceType === "FREE") {
+    req.body.price = 0;
+  }
+
+  const tags =
+    (req.body.tags as string[] | undefined)?.map((t: string) =>
+      t.toLowerCase()
+    ) ?? [];
+
+  const eventData: Prisma.EventUpdateInput = {
+    title: req.body.title,
+    description: req.body.description,
+    date: new Date(req.body.date),
+    registrationDeadline: new Date(req.body.registrationDeadline),
+    startTime: req.body.startTime,
+    endTime: req.body.endTime,
+    location: req.body.location,
+    priceType: req.body.priceType,
+    price: req.body.price ?? null,
+    capacity: req.body.capacity,
+    tags,
+    imageUrl: req.body.imageUrl,
+  };
+
+  const updatedEvent = await prisma.event.update({
+    where: {
+      id: req.params.id,
+    },
+    data: { ...eventData },
+  });
+
+  console.log("updatedEvent", updatedEvent);
+
+  return updatedEvent;
 };
 
 export const EventServices = {

@@ -21,6 +21,20 @@ const getEventsByHostId = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const softDeleteEvent = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const decodedToken = req.user;
+
+  const result = await HostServices.softDeleteEvent(id, decodedToken?.email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Event has been removed successfully.",
+    data: result,
+  });
+});
+
 export const HostController = {
   getEventsByHostId,
+  softDeleteEvent,
 };

@@ -5,8 +5,6 @@ export const PriceType = z.enum(["FREE", "PAID"]);
 export const createEventZodSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
 
-  category: z.enum(["EVENT", "ACTIVITY"]),
-
   date: z.string().min(1, "Date is required"),
   registrationDeadline: z.string().min(1, "Registration deadline is required"),
   startTime: z.string().min(1, "Start time is required"),

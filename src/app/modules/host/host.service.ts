@@ -2,7 +2,7 @@ import { Request } from "express";
 import { IEventFilterRequest } from "../event/event.interface";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
-import { EventStatus, PriceType, Prisma } from "@prisma/client";
+import {  EventApprovalStatus, PriceType, Prisma } from "@prisma/client";
 import { eventSearchableFields } from "../event/event.constants";
 import prisma from "../../shared/prisma";
 
@@ -91,7 +91,7 @@ const getEventsByHostId = async (
   }
 
   andConditions.push({
-    status: EventStatus.PUBLISHED,
+    approvalStatus: EventApprovalStatus.PUBLISHED,
   });
 
   const whereConditions: Prisma.EventWhereInput =
@@ -125,6 +125,52 @@ const getEventsByHostId = async (
   };
 };
 
+const softDeleteEvent = async (id: string, email: string) => {
+
+   const host =await prisma.host.findUniqueOrThrow({
+        where: {
+            email,
+            isDeleted: false
+        }
+    });
+
+    const event = await prisma.event.findFirstOrThrow({
+        where: {
+            id,
+            hostId: host.id,
+            isDeleted: false
+        }
+    });
+
+
+    const result = await prisma.$transaction(async (transactionClient) => {
+        const eventDeletedData = await transactionClient.event.update({
+            where: {
+                id
+            },
+            data: {
+                isDeleted: true
+            }
+        });
+
+        await transactionClient.host.update({
+            where: {
+                email: host?.email
+            },
+            data: {
+                cancelledEvents: {
+                    increment: 1
+                }
+            }
+        });
+
+        return eventDeletedData;
+    });
+
+    return result;
+}
+
 export const HostServices = {
-  getEventsByHostId
+  getEventsByHostId,
+  softDeleteEvent
 };
