@@ -8,11 +8,20 @@ import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
 
 const createAdmin = async (req: Request): Promise<Admin> => {
+  const decodedToken = req.user as JwtPayload;
+
   const file = req.file;
 
   if (file) {
     const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
     req.body.profilePhoto = uploadToCloudinary?.secure_url;
+  }
+
+  if (decodedToken.role !== UserRole.SUPER_ADMIN) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Only super admins can create admin accounts."
+    );
   }
 
   await prisma.superAdmin.findFirstOrThrow({
@@ -30,6 +39,17 @@ const createAdmin = async (req: Request): Promise<Admin> => {
 
   if (existingAdmin) {
     throw new AppError(httpStatus.CONFLICT, "You are already an admin.");
+  }
+
+  const user = await prisma.userBasicInfo.findFirst({
+    where: { email: req.body?.email },
+  });
+
+  if (!user) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "User does not exist. Please register the user first."
+    );
   }
 
   console.log("req.body", req.body);
@@ -232,7 +252,7 @@ const updateUser = async (req: Request) => {
     )
   );
 
-   console.log("updateData", updateData);
+  console.log("updateData", updateData);
 
   const result = await prisma.user.update({
     where: {

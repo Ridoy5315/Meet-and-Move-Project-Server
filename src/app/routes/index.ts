@@ -3,6 +3,7 @@ import { authRoutes } from '../modules/auth/auth.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { eventRoutes } from '../modules/event/event.routes';
 import { hostRoutes } from '../modules/host/host.routes';
+import { superAdminRoutes } from '../modules/superAdmin/superAdmin.routes';
 
 
 const router = express.Router();
@@ -23,6 +24,10 @@ const moduleRoutes = [
     {
         path: '/host',
         route: hostRoutes
+    },
+    {
+        path: '/superAdmin',
+        route: superAdminRoutes
     },
 ];
 

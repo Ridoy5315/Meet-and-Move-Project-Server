@@ -7,6 +7,7 @@ import prisma from "../../shared/prisma";
 import { CreateUserPayload } from "./auth.validation";
 import AppError from "../../errorHelpers/AppError";
 import { jwtHelpers } from "../../utils/jwt";
+import { AuthJwtPayload } from "../../interfaces/authUser.types";
 
 const createUser = async (payload: CreateUserPayload): Promise<User> => {
   const hashedPassword: string = await bcrypt.hash(
@@ -138,7 +139,7 @@ const refreshToken = async (token: string) => {
   };
 };
 
-const getMe = async (user) => {
+const getMe = async (user: AuthJwtPayload) => {
   const userData = await prisma.userBasicInfo.findUniqueOrThrow({
     where: {
       email: user.email,

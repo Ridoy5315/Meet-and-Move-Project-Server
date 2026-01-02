@@ -10,7 +10,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Admin created successfully.",
+    message: "Admin account created successfully.",
     data: result,
   });
 });
