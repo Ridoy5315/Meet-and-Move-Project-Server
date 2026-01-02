@@ -7,6 +7,7 @@ import prisma from "../../shared/prisma";
 import { CreateUserPayload } from "./auth.validation";
 import AppError from "../../errorHelpers/AppError";
 import { jwtHelpers } from "../../utils/jwt";
+import { AuthJwtPayload } from "../../interfaces/authUser.types";
 
 const createUser = async (payload: CreateUserPayload): Promise<User> => {
   const hashedPassword: string = await bcrypt.hash(
@@ -138,14 +139,13 @@ const refreshToken = async (token: string) => {
   };
 };
 
-const getMe = async (user) => {
+const getMe = async (user: AuthJwtPayload) => {
   const userData = await prisma.userBasicInfo.findUniqueOrThrow({
     where: {
       email: user.email,
       status: UserStatus.ACTIVE,
     },
     select: {
-      id: true,
       email: true,
       role: true,
       status: true,
@@ -175,12 +175,25 @@ const getMe = async (user) => {
       profile = userData.superAdmin;
       break;
 
+    case "USER":
     default:
       profile = userData.user;
+      break;
+  }
+
+   if (!profile) {
+    return {
+      email: userData.email,
+      role: userData.role,
+      status: userData.status,
+      isVerified: userData.isVerified,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
+      profile: null,
+    };
   }
 
   return {
-    id: userData.id,
     email: userData.email,
     role: userData.role,
     status: userData.status,

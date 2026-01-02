@@ -26,3 +26,21 @@ enum HostStatus {
   APPROVED
   REJECTED
 }
+
+enum PriceType {
+  FREE
+  PAID
+}
+
+enum EventApprovalStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum EventLifecycleStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}

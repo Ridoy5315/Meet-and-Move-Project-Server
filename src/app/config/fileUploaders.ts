@@ -1,8 +1,10 @@
+import httpStatus from 'http-status';
 import multer from "multer"
 import path from "path"
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import { envVars } from "./env";
+import AppError from "../errorHelpers/AppError";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

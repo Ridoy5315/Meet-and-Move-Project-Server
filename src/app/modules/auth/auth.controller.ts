@@ -6,6 +6,7 @@ import { AuthService } from "./auth.service";
 import { setAuthCookies } from "../../utils/setCookie";
 import { envVars } from "../../config/env";
 import { getCookieMaxAge } from "../../utils/cookieExpiry";
+import { AuthJwtPayload } from "../../interfaces/authUser.types";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.createUser(req.body);
@@ -64,7 +65,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
 const getMe = catchAsync(async (req: Request, res: Response) => {
 
-  const user = req.user;
+  const user = req.user as AuthJwtPayload;
   const result = await AuthService.getMe(user);
 
   sendResponse(res, {

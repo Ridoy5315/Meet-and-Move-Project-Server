@@ -10,7 +10,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Admin created successfully.",
+    message: "Admin account created successfully.",
     data: result,
   });
 });
@@ -27,7 +27,20 @@ const becomeHost = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateUser = catchAsync(async (req: Request, res: Response) => {
+
+  const result = await UserService.updateUser(req);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "User updated successfully.",
+    data: result,
+  });
+});
+
 export const UserController = {
   createAdmin,
-  becomeHost
+  becomeHost,
+  updateUser
 };
