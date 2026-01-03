@@ -18,13 +18,30 @@ const createEvent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
 const getAllPublicEvents = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, eventFilterableFields);
   const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
 
-  const user = req.user as JwtPayload | undefined;
 
-  const result = await EventServices.getAllPublicEvents(filters, options, user?.email );
+  const result = await EventServices.getAllPublicEvents(filters, options );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All public events fetched successfully.",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getAllEvents = catchAsync(async (req: Request, res: Response) => {
+  const filters = pick(req.query, eventFilterableFields);
+  const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
+
+  const decodedToken = req.user as JwtPayload | undefined;
+
+  const result = await EventServices.getAllEvents(filters, options, decodedToken );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -49,5 +66,6 @@ const updateEvent = catchAsync(async (req: Request, res: Response) => {
 export const EventController = {
   createEvent,
   getAllPublicEvents,
+  getAllEvents,
   updateEvent,
 };

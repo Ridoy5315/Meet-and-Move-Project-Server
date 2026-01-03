@@ -26,6 +26,12 @@ router.get(
     EventController.getAllPublicEvents
 );
 
+router.get(
+    "/all-events",
+    checkAuth(UserRole.HOST, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    EventController.getAllEvents
+);
+
 router.patch(
     "/update-event/:id",
     checkAuth(UserRole.HOST),

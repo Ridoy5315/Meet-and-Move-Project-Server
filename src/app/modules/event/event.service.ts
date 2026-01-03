@@ -7,6 +7,7 @@ import {
   EventLifecycleStatus,
   PriceType,
   Prisma,
+  UserRole,
 } from "@prisma/client";
 import { fileUploader } from "../../config/fileUploaders";
 import AppError from "../../errorHelpers/AppError";
@@ -15,6 +16,7 @@ import { IEventFilterRequest } from "./event.interface";
 import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import { eventSearchableFields } from "./event.constants";
+import { parsePriceRange } from "../../utils/parsePriceRange";
 
 const createEvent = async (req: Request): Promise<Event> => {
   const decodedToken = req.user as JwtPayload;
@@ -91,14 +93,12 @@ const createEvent = async (req: Request): Promise<Event> => {
 
 const getAllPublicEvents = async (
   filters: IEventFilterRequest,
-  options: IPaginationOptions,
-  userEmail?: string
+  options: IPaginationOptions
 ) => {
   const { limit, page, skip } = paginationHelper.calculatePagination(options);
-  const { searchTerm, date, priceType, minPrice, maxPrice, ...filterData } =
+  const { searchTerm, date, priceType, priceRange, ...filterData } =
     filters;
 
-  console.log("minPrice", minPrice, "maxPrice", maxPrice);
 
   const andConditions: Prisma.EventWhereInput[] = [];
 
@@ -138,28 +138,19 @@ const getAllPublicEvents = async (
     });
   }
 
-  const minPriceNum = minPrice !== undefined ? Number(minPrice) : undefined;
-  const maxPriceNum = maxPrice !== undefined ? Number(maxPrice) : undefined;
+  if (priceRange) {
+    const { min, max } = parsePriceRange(priceRange);
 
-  const hasValidMinPrice =
-    typeof minPriceNum === "number" && !Number.isNaN(minPriceNum);
-  const hasValidMaxPrice =
-    typeof maxPriceNum === "number" && !Number.isNaN(maxPriceNum);
-
-  if (priceType !== PriceType.FREE && (hasValidMinPrice || hasValidMaxPrice)) {
     andConditions.push({
+      priceType: PriceType.PAID,
       price: {
-        ...(hasValidMinPrice && { gte: minPriceNum }),
-        ...(hasValidMaxPrice && { lte: maxPriceNum }),
+        not: null,
+        ...(min !== undefined && { gte: min }),
+        ...(max !== undefined && { lte: max }),
       },
     });
   }
 
-  if (priceType === PriceType.FREE) {
-    andConditions.push({
-      price: null,
-    });
-  }
 
   if (Object.keys(filterData).length > 0) {
     const filterConditions = Object.keys(filterData).map((key) => ({
@@ -175,27 +166,10 @@ const getAllPublicEvents = async (
     isDeleted: false,
   });
 
-  console.log("userEmail", userEmail);
-
-  if (userEmail) {
-    const host = await prisma.host.findUnique({
-      where: { email: userEmail },
-      select: { id: true },
-    });
-
-    if (!host) {
-      throw new AppError(httpStatus.NOT_FOUND, "Host not found");
-    }
-
-    andConditions.push({
-      hostId: host.id,
-    });
-  }
-
   const whereConditions: Prisma.EventWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
-  console.log("WHERE:", JSON.stringify({ AND: andConditions }, null, 2));
+  console.log("WHERE1:", JSON.stringify({ AND: andConditions }, null, 2));
 
   const result = await prisma.event.findMany({
     where: whereConditions,
@@ -222,7 +196,170 @@ const getAllPublicEvents = async (
       participantsCount: true,
       lifecycleStatus: true,
       createdAt: true,
-      updatedAt: true
+      updatedAt: true,
+    },
+  });
+
+  const total = await prisma.event.count({
+    where: whereConditions,
+  });
+
+  console.log(result);
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: result,
+  };
+};
+
+const getAllEvents = async (
+  filters: IEventFilterRequest,
+  options: IPaginationOptions,
+  decodedToken?: JwtPayload
+) => {
+  const userRole = decodedToken?.role as UserRole | undefined;
+
+  if (userRole === UserRole.ADMIN || userRole === UserRole.HOST) {
+    const user = await prisma.userBasicInfo.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User not found.");
+    }
+
+    if (user.role !== userRole) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User role mismatch.");
+    }
+  } else if (userRole === UserRole.SUPER_ADMIN) {
+    const user = await prisma.superAdmin.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Super Admin not found.");
+    }
+  }
+
+  const { limit, page, skip } = paginationHelper.calculatePagination(options);
+  const {
+    searchTerm,
+    date,
+    priceType,
+    lifecycleStatus,
+    priceRange,
+    ...filterData
+  } = filters;
+
+  console.log("priceRange", priceRange);
+
+  const andConditions: Prisma.EventWhereInput[] = [];
+
+  const normalizedSearch = (searchTerm ?? "").toLowerCase();
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        ...eventSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+        {
+          tags: {
+            has: normalizedSearch,
+          },
+        },
+      ],
+    });
+  }
+
+  if (date) {
+    andConditions.push({
+      date: {
+        gte: new Date(date), // events on or after this date
+      },
+    });
+  }
+
+  if (priceType) {
+    andConditions.push({
+      priceType: {
+        equals: priceType,
+      },
+    });
+  }
+
+  if (lifecycleStatus) {
+    andConditions.push({
+      lifecycleStatus: {
+        equals: lifecycleStatus,
+      },
+    });
+  }
+
+  if (priceRange) {
+    const { min, max } = parsePriceRange(priceRange);
+
+    andConditions.push({
+      priceType: PriceType.PAID,
+      price: {
+        not: null,
+        ...(min !== undefined && { gte: min }),
+        ...(max !== undefined && { lte: max }),
+      },
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    const filterConditions = Object.keys(filterData).map((key) => ({
+      [key]: {
+        equals: (filterData as any)[key],
+      },
+    }));
+    andConditions.push(...filterConditions);
+  }
+
+  const whereConditions: Prisma.EventWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  console.log("WHERE1:", JSON.stringify({ AND: andConditions }, null, 2));
+
+  const result = await prisma.event.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : { registrationDeadline: "desc" },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      date: true,
+      registrationDeadline: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      priceType: true,
+      price: true,
+      capacity: true,
+      tags: true,
+      imageUrl: true,
+      participantsCount: true,
+      lifecycleStatus: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
@@ -331,5 +468,6 @@ const updateEvent = async (req: Request): Promise<Event> => {
 export const EventServices = {
   createEvent,
   getAllPublicEvents,
+  getAllEvents,
   updateEvent,
 };

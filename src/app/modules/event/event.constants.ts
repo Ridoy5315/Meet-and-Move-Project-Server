@@ -8,6 +8,6 @@ export const eventFilterableFields: string[] = [
     "searchTerm",
     "date",
     "priceType",
-    "minPrice",
-    "maxPrice"
+    "lifecycleStatus",
+    "priceRange"
 ];
