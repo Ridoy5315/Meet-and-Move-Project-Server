@@ -39,8 +39,9 @@ enum EventApprovalStatus {
 }
 
 enum EventLifecycleStatus {
-  UPCOMING
-  ONGOING
-  COMPLETED
+  UPCOMING              // registration open OR not started yet (before deadline)
+  REGISTRATION_CLOSED   // ✅ NEW: after registrationDeadline but before event starts
+  ONGOING               // event started
+  COMPLETED             // event ended
   CANCELLED
 }

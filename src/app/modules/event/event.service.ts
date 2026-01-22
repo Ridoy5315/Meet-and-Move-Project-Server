@@ -17,6 +17,7 @@ import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import { eventSearchableFields } from "./event.constants";
 import { parsePriceRange } from "../../utils/parsePriceRange";
+import { de } from "zod/v4/locales";
 
 const createEvent = async (req: Request): Promise<Event> => {
   const decodedToken = req.user as JwtPayload;
@@ -38,7 +39,20 @@ const createEvent = async (req: Request): Promise<Event> => {
   if (host.id !== req.params.id) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "You are not allowed to submit host information for another account."
+      "You are not allowed to submit host information for another account.",
+    );
+  }
+
+  // Date validations
+  if (
+    req.body.registrationStartDate &&
+    req.body.registrationDeadline &&
+    new Date(req.body.registrationStartDate) >
+      new Date(req.body.registrationDeadline)
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Registration start date must be earlier than registration deadline.",
     );
   }
 
@@ -49,7 +63,7 @@ const createEvent = async (req: Request): Promise<Event> => {
   ) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Registration deadline cannot be after event date."
+      "Registration deadline cannot be after event date.",
     );
   }
 
@@ -59,22 +73,30 @@ const createEvent = async (req: Request): Promise<Event> => {
 
   const tags =
     (req.body.tags as string[] | undefined)?.map((t: string) =>
-      t.toLowerCase()
+      t.toLowerCase(),
     ) ?? [];
 
   const eventData: Prisma.EventCreateInput = {
     title: req.body.title,
     description: req.body.description,
     date: new Date(req.body.date),
+
+    registrationStartDate: new Date(req.body.registrationStartDate),
     registrationDeadline: new Date(req.body.registrationDeadline),
+
     startTime: req.body.startTime,
     endTime: req.body.endTime,
     location: req.body.location,
+
     priceType: req.body.priceType,
     price: req.body.price ?? null,
     capacity: req.body.capacity,
+
     tags,
     imageUrl: req.body.profilePhoto,
+
+    lifecycleStatus: EventLifecycleStatus.UPCOMING, // ⭐ recommended
+
     host: {
       connect: {
         id: req.params.id,
@@ -91,14 +113,147 @@ const createEvent = async (req: Request): Promise<Event> => {
   return createdEvent;
 };
 
+const updateEvent = async (req: Request): Promise<Event> => {
+  const decodedToken = req.user as JwtPayload;
+  const { id } = req.params;
+
+  const file = req.file;
+
+  if (file) {
+    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+    req.body.imageUrl = uploadToCloudinary?.secure_url;
+  }
+
+  if (decodedToken.role !== UserRole.HOST && decodedToken.role !== UserRole.ADMIN) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Only HOST or ADMIN users can update event information.",
+    );
+  }
+
+  const event = await prisma.event.findFirst({
+    where: {
+      id,
+      ...(decodedToken.role === UserRole.HOST && {
+        approvalStatus: EventApprovalStatus.PUBLISHED,
+      }),
+    },
+  });
+
+  if (!event) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Event not found or you do not have permission to update this event.",
+    );
+  }
+
+  if (event.isDeleted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Deleted events cannot be updated.",
+    );
+  }
+
+  if (decodedToken.role === UserRole.HOST) {
+    const host = await prisma.host.findFirstOrThrow({
+      where: { email: decodedToken.email, isDeleted: false },
+    });
+
+    if (host.id !== event.hostId) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not allowed to update event information for another host.",
+      );
+    }
+  } else {
+    await prisma.admin.findFirstOrThrow({
+      where: { email: decodedToken.email, isDeleted: false },
+    });
+  }
+
+  if (event.lifecycleStatus === EventLifecycleStatus.COMPLETED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Completed events cannot be updated.",
+    );
+  }
+
+  // ✅ Cross-field date validation (works with partial updates)
+  const nextRegistrationStartDate = req.body.registrationStartDate
+    ? new Date(req.body.registrationStartDate)
+    : event.registrationStartDate; // existing value
+
+  const nextRegistrationDeadline = req.body.registrationDeadline
+    ? new Date(req.body.registrationDeadline)
+    : event.registrationDeadline;
+
+  const nextEventDate = req.body.date ? new Date(req.body.date) : event.date;
+
+  // registrationStartDate < registrationDeadline
+  if (nextRegistrationStartDate && nextRegistrationDeadline) {
+    if (!(nextRegistrationStartDate < nextRegistrationDeadline)) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Registration start date must be earlier than registration deadline.",
+      );
+    }
+  }
+
+  // registrationDeadline <= event date
+  if (nextRegistrationDeadline && nextEventDate) {
+    if (nextRegistrationDeadline > nextEventDate) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Registration deadline cannot be after event date.",
+      );
+    }
+  }
+
+  // ✅ Price normalization
+  if (req.body.priceType === "FREE") {
+    req.body.price = 0;
+  }
+
+  const tags =
+    (req.body.tags as string[] | undefined)?.map((t: string) => t.toLowerCase()) ?? [];
+
+  const eventData: Prisma.EventUpdateInput = {
+    ...(req.body.title && { title: req.body.title }),
+    ...(req.body.description && { description: req.body.description }),
+    ...(req.body.date && { date: new Date(req.body.date) }),
+
+    ...(req.body.registrationStartDate && {
+      registrationStartDate: new Date(req.body.registrationStartDate),
+    }), 
+
+    ...(req.body.registrationDeadline && {
+      registrationDeadline: new Date(req.body.registrationDeadline),
+    }),
+
+    ...(req.body.startTime && { startTime: req.body.startTime }),
+    ...(req.body.endTime && { endTime: req.body.endTime }),
+    ...(req.body.location && { location: req.body.location }),
+    ...(req.body.priceType && { priceType: req.body.priceType }),
+    ...(req.body.price !== undefined && { price: req.body.price }),
+    ...(req.body.capacity && { capacity: req.body.capacity }),
+    ...(req.body.tags !== undefined && { tags }), // better: only update tags if provided
+    ...(req.body.imageUrl && { imageUrl: req.body.imageUrl }),
+  };
+
+  const updatedEvent = await prisma.event.update({
+    where: { id },
+    data: eventData,
+  });
+
+  return updatedEvent;
+};
+
 const getAllPublicEvents = async (
   filters: IEventFilterRequest,
-  options: IPaginationOptions
+  options: IPaginationOptions,
 ) => {
   const { limit, page, skip } = paginationHelper.calculatePagination(options);
-  const { searchTerm, date, priceType, priceRange, ...filterData } =
-    filters;
-
+  const { searchTerm, date, priceType, priceRange, ...filterData } = filters;
 
   const andConditions: Prisma.EventWhereInput[] = [];
 
@@ -150,7 +305,6 @@ const getAllPublicEvents = async (
       },
     });
   }
-
 
   if (Object.keys(filterData).length > 0) {
     const filterConditions = Object.keys(filterData).map((key) => ({
@@ -219,7 +373,7 @@ const getAllPublicEvents = async (
 const getAllEvents = async (
   filters: IEventFilterRequest,
   options: IPaginationOptions,
-  decodedToken?: JwtPayload
+  decodedToken?: JwtPayload,
 ) => {
   const userRole = decodedToken?.role as UserRole | undefined;
 
@@ -367,7 +521,168 @@ const getAllEvents = async (
     where: whereConditions,
   });
 
-  console.log(result);
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: result,
+  };
+};
+
+const getUpcomingEvents = async (
+  filters: IEventFilterRequest,
+  options: IPaginationOptions,
+  decodedToken?: JwtPayload,
+) => {
+  const userRole = decodedToken?.role as UserRole | undefined;
+
+  if (userRole === UserRole.ADMIN || userRole === UserRole.HOST) {
+    const user = await prisma.userBasicInfo.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User not found.");
+    }
+
+    if (user.role !== userRole) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User role mismatch.");
+    }
+  } else if (userRole === UserRole.SUPER_ADMIN) {
+    const user = await prisma.superAdmin.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Super Admin not found.");
+    }
+  }
+
+  const { limit, page, skip } = paginationHelper.calculatePagination(options);
+  const {
+    searchTerm,
+    date,
+    priceType,
+    lifecycleStatus,
+    priceRange,
+    ...filterData
+  } = filters;
+
+  const andConditions: Prisma.EventWhereInput[] = [];
+
+  const normalizedSearch = (searchTerm ?? "").toLowerCase();
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        ...eventSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+        {
+          tags: {
+            has: normalizedSearch,
+          },
+        },
+      ],
+    });
+  }
+
+  if (date) {
+    andConditions.push({
+      date: {
+        gte: new Date(date),
+      },
+    });
+  }
+
+  if (priceType) {
+    andConditions.push({
+      priceType: {
+        equals: priceType,
+      },
+    });
+  }
+
+  if (lifecycleStatus) {
+    andConditions.push({
+      lifecycleStatus: {
+        equals: lifecycleStatus,
+      },
+    });
+  }
+
+  if (priceRange) {
+    const { min, max } = parsePriceRange(priceRange);
+
+    andConditions.push({
+      priceType: PriceType.PAID,
+      price: {
+        not: null,
+        ...(min !== undefined && { gte: min }),
+        ...(max !== undefined && { lte: max }),
+      },
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    const filterConditions = Object.keys(filterData).map((key) => ({
+      [key]: {
+        equals: (filterData as any)[key],
+      },
+    }));
+    andConditions.push(...filterConditions);
+  }
+
+  andConditions.push({
+    lifecycleStatus: EventLifecycleStatus.UPCOMING,
+  });
+
+  const whereConditions: Prisma.EventWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  console.log("WHERE1:", JSON.stringify({ AND: andConditions }, null, 2));
+
+  const result = await prisma.event.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : { registrationDeadline: "desc" },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      date: true,
+      registrationDeadline: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      priceType: true,
+      price: true,
+      capacity: true,
+      tags: true,
+      imageUrl: true,
+      participantsCount: true,
+      lifecycleStatus: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  const total = await prisma.event.count({
+    where: whereConditions,
+  });
 
   return {
     meta: {
@@ -379,95 +694,177 @@ const getAllEvents = async (
   };
 };
 
-const updateEvent = async (req: Request): Promise<Event> => {
-  const decodedToken = req.user as JwtPayload;
+const getPastEvents = async (
+  filters: IEventFilterRequest,
+  options: IPaginationOptions,
+  decodedToken?: JwtPayload,
+) => {
+  const userRole = decodedToken?.role as UserRole | undefined;
 
-  const file = req.file;
+  if (userRole === UserRole.ADMIN || userRole === UserRole.HOST) {
+    const user = await prisma.userBasicInfo.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
 
-  if (file) {
-    const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
-    req.body.imageUrl = uploadToCloudinary?.secure_url;
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User not found.");
+    }
+
+    if (user.role !== userRole) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "User role mismatch.");
+    }
+  } else if (userRole === UserRole.SUPER_ADMIN) {
+    const user = await prisma.superAdmin.findFirst({
+      where: {
+        email: decodedToken?.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Super Admin not found.");
+    }
   }
 
-  const host = await prisma.host.findFirstOrThrow({
-    where: {
-      email: decodedToken.email,
-      isDeleted: false,
+  const { limit, page, skip } = paginationHelper.calculatePagination(options);
+  const {
+    searchTerm,
+    date,
+    priceType,
+    lifecycleStatus,
+    priceRange,
+    ...filterData
+  } = filters;
+
+  const andConditions: Prisma.EventWhereInput[] = [];
+
+  const normalizedSearch = (searchTerm ?? "").toLowerCase();
+
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        ...eventSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+        {
+          tags: {
+            has: normalizedSearch,
+          },
+        },
+      ],
+    });
+  }
+
+  if (date) {
+    andConditions.push({
+      date: {
+        gte: new Date(date),
+      },
+    });
+  }
+
+  if (priceType) {
+    andConditions.push({
+      priceType: {
+        equals: priceType,
+      },
+    });
+  }
+
+  if (lifecycleStatus) {
+    andConditions.push({
+      lifecycleStatus: {
+        equals: lifecycleStatus,
+      },
+    });
+  }
+
+  if (priceRange) {
+    const { min, max } = parsePriceRange(priceRange);
+
+    andConditions.push({
+      priceType: PriceType.PAID,
+      price: {
+        not: null,
+        ...(min !== undefined && { gte: min }),
+        ...(max !== undefined && { lte: max }),
+      },
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    const filterConditions = Object.keys(filterData).map((key) => ({
+      [key]: {
+        equals: (filterData as any)[key],
+      },
+    }));
+    andConditions.push(...filterConditions);
+  }
+
+  andConditions.push({
+    lifecycleStatus: EventLifecycleStatus.COMPLETED,
+  });
+
+  const whereConditions: Prisma.EventWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  console.log("WHERE1:", JSON.stringify({ AND: andConditions }, null, 2));
+
+  const result = await prisma.event.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : { registrationDeadline: "desc" },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      date: true,
+      registrationDeadline: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      priceType: true,
+      price: true,
+      capacity: true,
+      tags: true,
+      imageUrl: true,
+      participantsCount: true,
+      lifecycleStatus: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
-  const event = await prisma.event.findFirstOrThrow({
-    where: {
-      id: req.params.id,
-      isDeleted: false,
-      approvalStatus: EventApprovalStatus.PUBLISHED,
-    },
+  const total = await prisma.event.count({
+    where: whereConditions,
   });
 
-  if (host.id !== event.hostId) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "You are not allowed to update event information for another host."
-    );
-  }
-
-  if (event.lifecycleStatus === EventLifecycleStatus.COMPLETED) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "Completed events cannot be updated."
-    );
-  }
-
-  if (
-    req.body.registrationDeadline &&
-    req.body.date &&
-    new Date(req.body.registrationDeadline) > new Date(req.body.date)
-  ) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Registration deadline cannot be after event date."
-    );
-  }
-
-  if (req.body.priceType === "FREE") {
-    req.body.price = 0;
-  }
-
-  const tags =
-    (req.body.tags as string[] | undefined)?.map((t: string) =>
-      t.toLowerCase()
-    ) ?? [];
-
-  const eventData: Prisma.EventUpdateInput = {
-    title: req.body.title,
-    description: req.body.description,
-    date: new Date(req.body.date),
-    registrationDeadline: new Date(req.body.registrationDeadline),
-    startTime: req.body.startTime,
-    endTime: req.body.endTime,
-    location: req.body.location,
-    priceType: req.body.priceType,
-    price: req.body.price ?? null,
-    capacity: req.body.capacity,
-    tags,
-    imageUrl: req.body.imageUrl,
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: result,
   };
-
-  const updatedEvent = await prisma.event.update({
-    where: {
-      id: req.params.id,
-    },
-    data: { ...eventData },
-  });
-
-  console.log("updatedEvent", updatedEvent);
-
-  return updatedEvent;
 };
+
+
+
 
 export const EventServices = {
   createEvent,
   getAllPublicEvents,
   getAllEvents,
   updateEvent,
+  getUpcomingEvents,
+  getPastEvents,
 };

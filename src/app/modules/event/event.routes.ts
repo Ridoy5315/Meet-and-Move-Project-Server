@@ -32,9 +32,21 @@ router.get(
     EventController.getAllEvents
 );
 
+router.get(
+    "/upcoming-events",
+    checkAuth(UserRole.HOST, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    EventController.getUpcomingEvents
+);
+
+router.get(
+    "/past-events",
+    checkAuth(UserRole.HOST, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+    EventController.getPastEvents
+);
+
 router.patch(
     "/update-event/:id",
-    checkAuth(UserRole.HOST),
+    checkAuth(UserRole.HOST, UserRole.ADMIN),
     fileUploader.upload.single('file'),
     validateRequest(updateEventZodSchema),
     EventController.updateEvent

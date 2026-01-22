@@ -18,6 +18,17 @@ const createEvent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateEvent = catchAsync(async (req: Request, res: Response) => {
+  const result = await EventServices.updateEvent(req);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Event updated successfully.",
+    data: result,
+  });
+});
+
 
 const getAllPublicEvents = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, eventFilterableFields);
@@ -52,14 +63,37 @@ const getAllEvents = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const updateEvent = catchAsync(async (req: Request, res: Response) => {
-  const result = await EventServices.updateEvent(req);
+const getUpcomingEvents = catchAsync(async (req: Request, res: Response) => {
+  const filters = pick(req.query, eventFilterableFields);
+  const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
+
+  const decodedToken = req.user as JwtPayload | undefined;
+
+  const result = await EventServices.getUpcomingEvents(filters, options, decodedToken );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Event updated successfully.",
-    data: result,
+    message: "Upcoming events fetched successfully.",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getPastEvents = catchAsync(async (req: Request, res: Response) => {
+  const filters = pick(req.query, eventFilterableFields);
+  const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
+
+  const decodedToken = req.user as JwtPayload | undefined;
+
+  const result = await EventServices.getPastEvents(filters, options, decodedToken );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Past events fetched successfully.",
+    meta: result.meta,
+    data: result.data,
   });
 });
 
@@ -68,4 +102,6 @@ export const EventController = {
   getAllPublicEvents,
   getAllEvents,
   updateEvent,
+  getUpcomingEvents,
+  getPastEvents,
 };
