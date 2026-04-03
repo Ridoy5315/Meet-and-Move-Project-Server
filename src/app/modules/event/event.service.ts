@@ -17,7 +17,8 @@ import { IPaginationOptions } from "../../interfaces/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import { eventSearchableFields } from "./event.constants";
 import { parsePriceRange } from "../../utils/parsePriceRange";
-import { de } from "zod/v4/locales";
+import { de, id } from "zod/v4/locales";
+import { resolveEventLifecycleStatus } from "../../utils/eventLifecycle";
 
 const createEvent = async (req: Request): Promise<Event> => {
   const decodedToken = req.user as JwtPayload;
@@ -124,7 +125,10 @@ const updateEvent = async (req: Request): Promise<Event> => {
     req.body.imageUrl = uploadToCloudinary?.secure_url;
   }
 
-  if (decodedToken.role !== UserRole.HOST && decodedToken.role !== UserRole.ADMIN) {
+  if (
+    decodedToken.role !== UserRole.HOST &&
+    decodedToken.role !== UserRole.ADMIN
+  ) {
     throw new AppError(
       httpStatus.FORBIDDEN,
       "Only HOST or ADMIN users can update event information.",
@@ -215,7 +219,9 @@ const updateEvent = async (req: Request): Promise<Event> => {
   }
 
   const tags =
-    (req.body.tags as string[] | undefined)?.map((t: string) => t.toLowerCase()) ?? [];
+    (req.body.tags as string[] | undefined)?.map((t: string) =>
+      t.toLowerCase(),
+    ) ?? [];
 
   const eventData: Prisma.EventUpdateInput = {
     ...(req.body.title && { title: req.body.title }),
@@ -224,7 +230,7 @@ const updateEvent = async (req: Request): Promise<Event> => {
 
     ...(req.body.registrationStartDate && {
       registrationStartDate: new Date(req.body.registrationStartDate),
-    }), 
+    }),
 
     ...(req.body.registrationDeadline && {
       registrationDeadline: new Date(req.body.registrationDeadline),
@@ -354,6 +360,26 @@ const getAllPublicEvents = async (
     },
   });
 
+  const updatedEvents = await Promise.all(
+    result.map(async (event) => {
+      const nextStatus = resolveEventLifecycleStatus({
+        registrationDeadline: event.registrationDeadline,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        isCancelled: event.lifecycleStatus === "CANCELLED",
+      });
+
+      if (nextStatus !== event.lifecycleStatus) {
+        await prisma.event.update({
+          where: { id: event.id },
+          data: { lifecycleStatus: nextStatus },
+        });
+      }
+      return { ...event, lifecycleStatus: nextStatus };
+    }),
+  );
+
   const total = await prisma.event.count({
     where: whereConditions,
   });
@@ -366,8 +392,40 @@ const getAllPublicEvents = async (
       page,
       limit,
     },
-    data: result,
+    data: updatedEvents,
   };
+};
+
+const getEventById = async (
+  id: string,
+) => {
+
+const event = await prisma.event.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      date: true,
+      registrationStartDate: true,
+      registrationDeadline: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      priceType: true,
+      price: true,
+      capacity: true,
+      tags: true,
+      imageUrl: true,
+      participantsCount: true,
+      lifecycleStatus: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return event;
+  
 };
 
 const getAllEvents = async (
@@ -517,6 +575,26 @@ const getAllEvents = async (
     },
   });
 
+  const updatedEvents = await Promise.all(
+    result.map(async (event) => {
+      const nextStatus = resolveEventLifecycleStatus({
+        registrationDeadline: event.registrationDeadline,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        isCancelled: event.lifecycleStatus === "CANCELLED",
+      });
+
+      if (nextStatus !== event.lifecycleStatus) {
+        await prisma.event.update({
+          where: { id: event.id },
+          data: { lifecycleStatus: nextStatus },
+        });
+      }
+      return { ...event, lifecycleStatus: nextStatus };
+    }),
+  );
+
   const total = await prisma.event.count({
     where: whereConditions,
   });
@@ -527,7 +605,7 @@ const getAllEvents = async (
       page,
       limit,
     },
-    data: result,
+    data: updatedEvents,
   };
 };
 
@@ -857,12 +935,10 @@ const getPastEvents = async (
   };
 };
 
-
-
-
 export const EventServices = {
   createEvent,
   getAllPublicEvents,
+  getEventById,
   getAllEvents,
   updateEvent,
   getUpcomingEvents,

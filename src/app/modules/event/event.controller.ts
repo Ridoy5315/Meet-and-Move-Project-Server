@@ -63,6 +63,20 @@ const getAllEvents = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getEventById = catchAsync(async (req: Request, res: Response) => {
+
+  const id = req.params.id;
+
+  const result = await EventServices.getEventById(id );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Event fetched successfully.",
+    data: result,
+  });
+});
+
 const getUpcomingEvents = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, eventFilterableFields);
   const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
@@ -101,6 +115,7 @@ export const EventController = {
   createEvent,
   getAllPublicEvents,
   getAllEvents,
+  getEventById,
   updateEvent,
   getUpcomingEvents,
   getPastEvents,

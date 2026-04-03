@@ -33,6 +33,12 @@ router.get(
 );
 
 router.get(
+    "/:id",
+    checkAuth(UserRole.HOST, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPER_ADMIN),
+    EventController.getEventById
+);
+
+router.get(
     "/upcoming-events",
     checkAuth(UserRole.HOST, UserRole.ADMIN, UserRole.SUPER_ADMIN),
     EventController.getUpcomingEvents
