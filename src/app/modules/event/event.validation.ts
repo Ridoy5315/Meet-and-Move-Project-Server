@@ -87,21 +87,21 @@ export const updateEventZodSchema = createEventZodSchema
     }
 
     // ⭐ Optional (recommended): if user updates one, require the other too
-    if (data.registrationStartDate && !data.registrationDeadline) {
-      ctx.addIssue({
-        code: "custom",
-        message:
-          "Registration deadline is required when start date is provided.",
-        path: ["registrationDeadline"],
-      });
-    }
+    // if (data.registrationStartDate && !data.registrationDeadline) {
+    //   ctx.addIssue({
+    //     code: "custom",
+    //     message:
+    //       "Registration deadline is required when start date is provided.",
+    //     path: ["registrationDeadline"],
+    //   });
+    // }
 
-    if (!data.registrationStartDate && data.registrationDeadline) {
-      ctx.addIssue({
-        code: "custom",
-        message:
-          "Registration start date is required when deadline is provided.",
-        path: ["registrationStartDate"],
-      });
-    }
+    // if (!data.registrationStartDate && data.registrationDeadline) {
+    //   ctx.addIssue({
+    //     code: "custom",
+    //     message:
+    //       "Registration start date is required when deadline is provided.",
+    //     path: ["registrationStartDate"],
+    //   });
+    // }
   });

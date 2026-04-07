@@ -9,7 +9,8 @@ import { envVars } from './app/config/env';
 
 const app: Application = express();
 app.use(cors({
-    origin: envVars.FRONTEND_URL,
+    // origin: envVars.FRONTEND_URL,
+    origin: ["http://localhost:3000", "https://meet-and-move-project-client.vercel.app"],
     credentials: true
 }));
 
