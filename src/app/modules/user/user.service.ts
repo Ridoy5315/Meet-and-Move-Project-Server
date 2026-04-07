@@ -6,6 +6,8 @@ import { JwtPayload } from "jsonwebtoken";
 import prisma from "../../shared/prisma";
 import AppError from "../../errorHelpers/AppError";
 import { envVars } from "../../config/env";
+import { IEventFilterRequest } from "../event/event.interface";
+import { IPaginationOptions } from "../../interfaces/pagination";
 
 const createAdmin = async (req: Request): Promise<Admin> => {
   const decodedToken = req.user as JwtPayload;
@@ -264,8 +266,9 @@ const updateUser = async (req: Request) => {
   return result;
 };
 
+
 export const UserService = {
   createAdmin,
   becomeHost,
-  updateUser,
+  updateUser
 };

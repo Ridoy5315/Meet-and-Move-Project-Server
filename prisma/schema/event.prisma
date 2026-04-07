@@ -3,6 +3,7 @@ model Event {
   title                String
   description          String
   date                 DateTime
+  registrationStartDate DateTime
   registrationDeadline DateTime
   startTime            String
   endTime              String

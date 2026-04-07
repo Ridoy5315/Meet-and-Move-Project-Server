@@ -3,6 +3,8 @@ import catchAsync from "../../shared/catchAsync";
 import { Request, Response } from "express";
 import { sendResponse } from "../../shared/sendResponse";
 import { UserService } from './user.service';
+import pick from '../../utils/pick';
+import { eventFilterableFields } from '../event/event.constants';
 
 const createAdmin = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.createAdmin(req);
@@ -42,5 +44,5 @@ const updateUser = catchAsync(async (req: Request, res: Response) => {
 export const UserController = {
   createAdmin,
   becomeHost,
-  updateUser
+  updateUser,
 };
