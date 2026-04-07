@@ -22,7 +22,7 @@ app.use(cookieParser());
 
 app.get('/', (req: Request, res: Response) => {
     res.send({
-        Message: "Ph health care server..",
+        Message: "Meet & Move Server is running",
         environment: envVars.NODE_ENV,
         uptime: process.uptime().toFixed(2) + " sec",
         timeStamp: new Date().toISOString()
